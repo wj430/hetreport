@@ -1,0 +1,191 @@
+---
+title: "Heterogeneity Lab Report"
+author: "Will Johnson"
+output:
+  html_document
+    
+bibliography: /Users/will/Documents/projects/hetreport/HetReport.bib
+csl: /Users/will/Documents/projects/hetreport/ecology.csl
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+**Abstract**
+
+This study investigates the large degree of spatial heterogeneity which maintained in at Brackenridge Field Lab, as well as the interplay between different forest layers. It also uses environmental conditions as proxies to gain insight into a historical disturbance regime which existed in the early to late 2000s. The hypotheses that shrub and canopy density are related and that the combined effect of deer presence and oak wilt was to increase the cover of ground vegetation are both tested. This is accomplished through visual surveys of foliage and through estimates of canopy structure made with Gap Light Analyzer.
+
+**Introduction**
+
+Brackenridge Field Lab is a research facility maintained by the University of Texas in west Austin. The 82 acre tract of land is dominated by forest, but contains many different habitat types, each with their own disturbance history. These disturbance events include quarrying in the late 1800s, deposition from a major flood in 1900, invasion of ornamental exotic shrubs, the creation of artificial wetlands, the colonization and subsequent die off of deer, and the spread of Oak Wilt disease. The cumulative effect of all of these was to create a mosaic which can be roughly categorized into different habitats, including quarry, old pasture, and river terrace. 
+Vegetation density is one useful tool for quantifying habitat heterogeneity. In the case of forests, it may be analyzed for the different layers and can provide insight into the underlying dynamics which shape the ecosystem. Canopy density has a profound impact on the available light and resulting makeup of the lower layers, and as such, many different techniques have been developed to quantify it. One such method uses the Gap Light Analyzer software to process images taken with commercial fish eye cameras [@frazerComparisonDigitalFilm2001]. 
+This study investigates how the density of each layer affects the other layers, as well as how the disturbance history of Brackenridge affects the overall vegetative structure. Multiple overlapping disturbance events may produce a different outcome [@itoChangesUnderstorySpecies2016], so a speculative investigation is made into the disturbance regime of the early to late 2000s in which oak wilt had recently caused mass mortality of oaks in BFL and the deer population was decreasing due to coyote predation. This model assumes that a declining deer population will result in higher shrub density, as @arceseDeerDensityPlant2014 reports that shrub density is much lower in areas with higher deer density. This study will test the hypothesis than an absence of live oak and reduced shrub cover will yield higher ground cover. The structure of a forest is composed of several vertically distinct layers, which each compete against one another for sunlight, land, and resources. This study investigates this dynamic by testing the hypothesis that canopy density and shrub density are related.
+
+
+**Materials and Methods**
+
+The data were collected from points at 20 meter intervals along transects at Brackenridge Field Lab. Canopy structure was recorded using a Nikon Cool Pics camera, taken with the right side of the camera facing north, while ecological data was recorded for several categories: estimated ground cover with percent dicots, estimated shrub cover with presence of native and invasive species, and counts of tree species including juniper, hackberry, cedar elm, live oak, cottonwood, pecan, and other trees. Canopy structure was analyzed using Gap Light Analyzer, which calculates the yearly amount of light received at a given point using the image and geographic parameters.  
+
+To calibrate the effectiveness of visual surveys of canopy density, a Pearson Correlation Coefficient was found between the percent canopy openness score from Gap Light Analyzer with the estimated canopy density score, which was rated between zero and three. To further test the possible variance in individual points around the predicted relationship, a linear regression was run with the estimated value as the predictor variable and the GLA data as the dependent variable. In order to investigate the relationship between ground and shrub cover, a chi square test for independence was performed between estimated ground and shrub cover, for each level of canopy density. To further contextualize this relationship within the disturbance history of Brackenridge Field Lab, a multiple regression was performed with both shrub density and the presence of live oak as predictive variables on ground cover. The historical data from previous sections of this class was used to map changing cover densities in BFL back to 2003. A map of the spatial distribution of different canopy types and the connectedness of like types was created using pen and paper.
+
+**Results**
+
+In the calibration of predicted canopy density with the canopy openness data provided by Gap Light Analyzer, there was a strong inverse relationship (Pearson Coefficient = -0.68), but also a large amount of variance in the estimated values. The linear regression test had a maximum residual of 28.9 on the Percent Canopy Openness axis.
+
+```{r include=FALSE}
+library(tidyverse)
+library(ggforce)
+library(cowplot)
+theme_set(theme_cowplot())
+HeterogeneityData = read_csv("/Users/will/Documents/projects/hetreport/HeterogeneityLabData.csv")
+cor.test(HeterogeneityData$percent_canopy_open,HeterogeneityData$Canopy, method = "pearson")
+```
+```{r echo=FALSE, warning=FALSE}
+ggplot(HeterogeneityData, aes(x= Canopy, y= percent_canopy_open)) +
+  geom_jitter(height = 0, width = .15) +
+  geom_smooth(method = "lm", se = FALSE, color = "grey")+
+  ylab("Percent Canopy Openness")+ xlab("Estimated Canopy Density")
+```
+
+In the multiple regression between the presence of live oak and estimated shrub cover on the estimated ground cover with interaction, none of the predictors were found to have a significant effect (p values: Shrub=0.202, Live Oak=0.553, Interaction=0.487). The numbers used to estimate cover for ground, shrub, and canopy may be interpreted as: 0- no cover, 1- low cover, 2- intermediate cover, 3- high cover.
+
+```{r echo=FALSE}
+
+library(dplyr)
+library(broom)
+library(tidyverse)
+disturbancemodel <- select(HeterogeneityData,Ground, Shrub, live_oak)
+disturbancemodel$LObinary <- cut(disturbancemodel$live_oak, 
+                   breaks=c(-1, .99, Inf), 
+                   labels=c("absent","present"))
+disturbanceomit <- disturbancemodel %>%
+  na.omit()
+disturbancelinmod <- lm(Ground ~ Shrub * LObinary, disturbanceomit)
+disturbancelinmod   
+ggplot(disturbanceomit, aes(y=Ground, x=Shrub, shape = LObinary, color =LObinary))+
+  geom_jitter(width = .25, height = .1)+
+  geom_smooth(method = "lm")+
+  labs(color = "Live Oak", shape = "Live Oak")
+```
+
+In a chi square test of independence for ground cover and shrub cover, no relationship between the two could be determined for any of the canopy cover types. Only when the aggregate data was tested could the null hypothesis be rejected, indicating that ground and shrub cover do not vary independently (p-value = 2.018e-06).
+
+```{r include=FALSE}
+library(dplyr)
+library(knitr)
+
+
+zerocanopycover = 
+  HeterogeneityData %>%
+  filter(Canopy == "0")
+
+
+onecanopycover = 
+  HeterogeneityData %>%
+  filter(Canopy == "1")
+
+
+twocanopycover = 
+  HeterogeneityData %>%
+  filter(Canopy == "2")
+
+
+threecanopycover = 
+  HeterogeneityData %>%
+  filter(Canopy == "3")
+
+GStable = xtabs(~ Ground + Shrub,
+                data = HeterogeneityData)
+
+GStablezero = xtabs(~ Ground + Shrub,
+                data = zerocanopycover)
+
+GStableone = xtabs(~ Ground + Shrub,
+                    data = onecanopycover)
+
+GStabletwo = xtabs(~ Ground + Shrub,
+                    data = twocanopycover)
+
+GStablethree = xtabs(~ Ground + Shrub,
+                    data = threecanopycover)
+```
+```{r include=FALSE}
+library(knitr)
+library(kableExtra)
+```
+```{r echo=FALSE,warning=FALSE}
+
+kable(GStable, caption = "Ground and Shrub Cover Frequencies for All Canopy Covers")%>%
+  kable_styling(bootstrap_options = "striped")%>%
+  column_spec(1,bold=T,width= "10em",border_right = T)%>%
+   add_header_above(c("Ground Cover","Shrub Cover"=4))
+
+kable(GStablezero, caption = "Ground and Shrub Cover Frequencies for Zero Canopy Cover")%>%
+  kable_styling(bootstrap_options = "striped")%>%
+  column_spec(1,bold=T,width= "10em",border_right = T)%>%
+   add_header_above(c("Ground Cover","Shrub Cover"=2))
+
+kable(GStableone, caption = "Ground and Shrub Cover Frequencies for One Canopy Cover")%>%
+  kable_styling(bootstrap_options = "striped")%>%
+  column_spec(1,bold=T,width= "10em",border_right = T)%>%
+   add_header_above(c("Ground Cover","Shrub Cover"=4))
+
+kable(GStabletwo, caption = "Ground and Shrub Cover Frequencies for Two Canopy Cover")%>%
+  kable_styling(bootstrap_options = "striped")%>%
+  column_spec(1,bold=T,width= "10em",border_right = T)%>%
+   add_header_above(c("Ground Cover","Shrub Cover"=4))
+
+kable(GStablethree, caption= "Ground and Shrub Cover Frequencies for Three Canopy Cover")%>%
+  kable_styling(bootstrap_options = "striped")%>%
+  column_spec(1,bold=T,width= "10em",border_right = T)%>%
+   add_header_above(c("Ground Cover","Shrub Cover"=4))
+
+
+par(mfrow = c(2,2), mar = c(1,1,1,1), oma = c(3.5, 3.5, 0, 0), cex.main = .9)
+mosaicplot(GStablezero, main = "Zero")
+mosaicplot(GStableone, main = "One")
+mosaicplot(GStabletwo, main = "Two")
+mosaicplot(GStablethree, main = "Three")
+mtext('Estimated Ground Cover', side = 1, outer = TRUE, line = 2)
+mtext('Estimated Shrub Cover', side = 2, outer = TRUE, line = 2)
+```
+```{r include = FALSE}
+chisq.test(GStable)
+chisq.test(GStablezero)
+chisq.test(GStabletwo)
+chisq.test(GStablethree)
+chisq.test(GStableone)
+```
+
+```{r echo=FALSE,include=FALSE}
+historicaldata <- read_csv("/Users/will/Documents/projects/hetreport/historical_data_Fall_03_to_18.csv")
+historicalomit <- na.omit(historicaldata)
+```
+
+In a visual analysis of previous class data for ground and shrub cover divided between the four canopy cover types, several themes are made apparent. The divergence between ground and shrub cover is greatest at zero canopy cover, and seems to decrease with greater shade. There also appears to be a relative maximum for both ground and shrub cover for all canopy cover types in 2011.
+
+```{r echo=FALSE, fig.width=10,message=FALSE}
+ggplot(data = historicalomit, aes(x = Year))+
+  geom_line(aes(y =Ground, color = "Ground"),stat = "summary")+
+  geom_line(aes(y = Shrub, color = "Shrub"),stat = "summary")+
+  facet_grid(.~ Canopy)+
+  ggtitle("Changing Ground and Shrub Cover for Four Different Canopy Cover Types") + ylab("Cover") + labs(color = "Cover")
+ 
+```
+
+
+
+
+![Spatial Distribution of Canopy Cover Types](/Users/will/Documents/projects/hetreport/map.JPG)
+
+**Discussion**
+
+The calibration performed between the two methods of estimating canopy cover indicates that the estimated values are reasonably accurate, but only when taken in aggregate. The large residuals in the linear regression indicate that any individual estimate may not be reliable to predict the GLA percent canopy cover. The linear model appears to have large disagreement with the GLA data at the high openness/low estimated cover end, but this is hard to determine conclusively with so few values for zero canopy cover.
+
+While the multiple linear regression with the presence of Live Oak and estimated shrub cover was intended to gain insight into the effects of the early to late 2000s disturbance regime on BFL ground cover, it is unlikely that it accurately models that system. For one, the model does not specifically consider where Live Oak used to be and has since disappeared, so it is unable to account for the structural changes in the canopy that occurred. Looking at shrub cover as a whole also does not factor in selective feeding by deer or direct herbivory of ground cover. Additionally, the trends in shrub cover from 2003 are somewhat ambiguous, so it is not clear that shrub cover was uniformly decreasing across all cover types when deer were foraging. To more accurately study this system, an approach similar to @itoChangesUnderstorySpecies2016 would be called for, in which the analysis was done on data from before and after mass mortality caused by oak wilt. Given that the historical data used here is not species specific, that is impossible for the extent of this study. Given that @tanentzapSeeingForestDeer2011 reports that some forest structures take decades to restore to normal after disturbance by deer has ended, this may still be a viable area of study in Brackenridge.
+
+The testing performed on the relationship between ground and shrub cover indicates that they do not vary independently across all of BFL. Although each of the canopy specific tests was unable to reject the null hypothesis, this seems more likely to be a result of insufficient data than it does true independence, but this is speculation. It can not be concluded that any of the canopy cover types has a stronger relationship between ground and shrub cover, only that, when taken in aggregate, there is a relationship.
+
+The map revealed a high degree of connectedness between like cover types. This connectedness may either reveal biases of the surveyers or the patchwork structure that makes up BFL's canopy mosaic.
+
+**Citations**
